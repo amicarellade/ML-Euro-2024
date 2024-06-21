@@ -206,18 +206,14 @@ print(upcoming_matches)
 from matplotlib.colors import ListedColormap
 
 def plot_agreement_heatmap(df):
-    # Extract the prediction columns
     agreement_matrix = df[['RF_Prediction', 'SVM_Prediction', 'NN_Prediction']]
     
-    # Calculate the agreement level
     # agreement_matrix['Agreement'] = agreement_matrix.apply(lambda x: len(set(x)), axis=1)
     
-    # Custom color map
     cmap = ListedColormap(["#b3bfd1", "#a4a2a8", "#df8879"])  # Colors: Away Win (Red), Draw (Yellow), Home Win (Green)
     
     fig, ax = plt.subplots(figsize=(12, 10))
     
-    # Create the heatmap
     sns.heatmap(agreement_matrix.T, cmap=cmap, cbar=False, annot=True, fmt='d', linewidths=.5, annot_kws={"size": 10}, ax=ax)
     
     plt.title('Model Agreement on Match Predictions', fontsize=18)
@@ -226,13 +222,12 @@ def plot_agreement_heatmap(df):
     plt.xticks(fontsize=10)
     plt.yticks(fontsize=12, rotation=0)
     
-    # Add fixture list
+    # fixture list
     fixture_list = ["{} vs. {}".format(row['home_team'], row['away_team']) for _, row in df.iterrows()]
     fixture_text = "\n".join([f"{idx}: {fixture}" for idx, fixture in enumerate(fixture_list)])
     
     plt.gcf().text(1.02, 0.5, fixture_text, fontsize=10, verticalalignment='center', transform=ax.transAxes)
     
-    # Add custom legend
     legend_labels = {
         0: 'Away Win',
         1: 'Draw',
@@ -249,5 +244,4 @@ def plot_agreement_heatmap(df):
     
     plt.show()
 
-# Use the function to plot the heatmap
 plot_agreement_heatmap(upcoming_matches)
