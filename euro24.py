@@ -6,6 +6,8 @@ from sklearn.metrics import accuracy_score, confusion_matrix, precision_score
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from imblearn.over_sampling import SMOTE
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # dataframe for upcoming matches
 upcoming_matches = pd.DataFrame({
@@ -102,7 +104,7 @@ def prepare_input_data(upcoming_matches, historical_data, fifa_rankings_df):
     return upcoming_matches
 
 data = pd.read_csv("/Users/danteamicarella/Downloads/archive 2/results.csv")
-fifa_rankings_df = pd.read_csv('fifa_rankings.csv')
+fifa_rankings_df = pd.read_csv('/Users/danteamicarella/fifa_rankings.csv')
 
 X_upcoming = prepare_input_data(upcoming_matches, data, fifa_rankings_df)
 print(X_upcoming)
@@ -115,7 +117,7 @@ def predict_outcomes(model, X_upcoming, model_name):
     return predictions
 
 def preprocess_data(data):
-    fifa_rankings_df = pd.read_csv('fifa_rankings.csv')
+    fifa_rankings_df = pd.read_csv('/Users/danteamicarella/fifa_rankings.csv')
 
     data['date'] = pd.to_datetime(data['date'])
     matches = data[~(data['date'] < '2018-01-01')]
@@ -200,3 +202,52 @@ upcoming_matches['SVM_Prediction'] = svm_predictions
 upcoming_matches['NN_Prediction'] = nn_predictions
 
 print(upcoming_matches)
+
+from matplotlib.colors import ListedColormap
+
+def plot_agreement_heatmap(df):
+    # Extract the prediction columns
+    agreement_matrix = df[['RF_Prediction', 'SVM_Prediction', 'NN_Prediction']]
+    
+    # Calculate the agreement level
+    # agreement_matrix['Agreement'] = agreement_matrix.apply(lambda x: len(set(x)), axis=1)
+    
+    # Custom color map
+    cmap = ListedColormap(["#b3bfd1", "#a4a2a8", "#df8879"])  # Colors: Away Win (Red), Draw (Yellow), Home Win (Green)
+    
+    fig, ax = plt.subplots(figsize=(12, 10))
+    
+    # Create the heatmap
+    sns.heatmap(agreement_matrix.T, cmap=cmap, cbar=False, annot=True, fmt='d', linewidths=.5, annot_kws={"size": 10}, ax=ax)
+    
+    plt.title('Model Agreement on Match Predictions', fontsize=18)
+    plt.xlabel('Match Index', fontsize=14)
+    plt.ylabel('Model', fontsize=14)
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=12, rotation=0)
+    
+    # Add fixture list
+    fixture_list = ["{} vs. {}".format(row['home_team'], row['away_team']) for _, row in df.iterrows()]
+    fixture_text = "\n".join([f"{idx}: {fixture}" for idx, fixture in enumerate(fixture_list)])
+    
+    plt.gcf().text(1.02, 0.5, fixture_text, fontsize=10, verticalalignment='center', transform=ax.transAxes)
+    
+    # Add custom legend
+    legend_labels = {
+        0: 'Away Win',
+        1: 'Draw',
+        2: 'Home Win'
+    }
+    
+    from matplotlib.lines import Line2D
+    custom_lines = [Line2D([0], [0], color='#b3bfd1', lw=4),
+                    Line2D([0], [0], color='#a4a2a8', lw=4),
+                    Line2D([0], [0], color='#df8879', lw=4)]
+    
+    plt.legend(custom_lines, [legend_labels[key] for key in legend_labels.keys()], title="Predictions",
+               bbox_to_anchor=(-0.1, 1.075), loc='upper left', borderaxespad=0.)
+    
+    plt.show()
+
+# Use the function to plot the heatmap
+plot_agreement_heatmap(upcoming_matches)
