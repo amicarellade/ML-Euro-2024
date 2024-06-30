@@ -205,28 +205,35 @@ print(upcoming_matches)
 
 from matplotlib.colors import ListedColormap
 
-def plot_agreement_heatmap(df):
+groups = {
+    'Group A': ['Germany', 'Scotland', 'Hungary', 'Switzerland'],
+    'Group B': ['Spain', 'Croatia', 'Italy', 'Albania'],
+    'Group C': ['Slovenia', 'Denmark', 'Serbia', 'England'],
+    'Group D': ['Netherlands', 'France', 'Poland', 'Austria'],
+    'Group E': ['Ukraine', 'Slovakia', 'Belgium', 'Romania'],
+    'Group F': ['Portugal', 'Czech Republic', 'Georgia', 'Turkey']
+}
+
+def plot_agreement_heatmap(df, title):
     agreement_matrix = df[['RF_Prediction', 'SVM_Prediction', 'NN_Prediction']]
+
+    prediction_cmap = ListedColormap(["#b3bfd1", "#a4a2a8", "#df8879"])  # Colors: Away Win, Draw, Home Win
+
+    fig, ax = plt.subplots(figsize=(15, 10))
     
-    # agreement_matrix['Agreement'] = agreement_matrix.apply(lambda x: len(set(x)), axis=1)
+    # Create the heatmap for predictions
+    sns.heatmap(agreement_matrix.T, cmap=prediction_cmap, cbar=False, annot=True, fmt='d', linewidths=.5, annot_kws={"size": 10}, ax=ax)
     
-    cmap = ListedColormap(["#b3bfd1", "#a4a2a8", "#df8879"])  # Colors: Away Win (Red), Draw (Yellow), Home Win (Green)
-    
-    fig, ax = plt.subplots(figsize=(12, 10))
-    
-    sns.heatmap(agreement_matrix.T, cmap=cmap, cbar=False, annot=True, fmt='d', linewidths=.5, annot_kws={"size": 10}, ax=ax)
-    
-    plt.title('Model Agreement on Match Predictions', fontsize=18)
-    plt.xlabel('Match Index', fontsize=14)
+    plt.title(f'{title} - Model Agreement on Match Predictions', fontsize=18)
+    plt.xlabel('Matchup', fontsize=14)
     plt.ylabel('Model', fontsize=14)
-    plt.xticks(fontsize=10)
+    
+    # Create matchup labels for x-axis
+    matchups = ["{} vs. {}".format(row['home_team'], row['away_team']) for _, row in df.iterrows()]
+    ax.set_xticks([i + 0.5 for i in range(len(matchups))])
+    ax.set_xticklabels(matchups, rotation=45, fontsize=10)
+    
     plt.yticks(fontsize=12, rotation=0)
-    
-    # fixture list
-    fixture_list = ["{} vs. {}".format(row['home_team'], row['away_team']) for _, row in df.iterrows()]
-    fixture_text = "\n".join([f"{idx}: {fixture}" for idx, fixture in enumerate(fixture_list)])
-    
-    plt.gcf().text(1.02, 0.5, fixture_text, fontsize=10, verticalalignment='center', transform=ax.transAxes)
     
     legend_labels = {
         0: 'Away Win',
@@ -240,8 +247,15 @@ def plot_agreement_heatmap(df):
                     Line2D([0], [0], color='#df8879', lw=4)]
     
     plt.legend(custom_lines, [legend_labels[key] for key in legend_labels.keys()], title="Predictions",
-               bbox_to_anchor=(-0.1, 1.075), loc='upper left', borderaxespad=0.)
+               bbox_to_anchor=(-0.2, 1), loc='upper left', borderaxespad=0.)
     
     plt.show()
 
-plot_agreement_heatmap(upcoming_matches)
+# Function to filter matches by group
+def filter_matches_by_group(df, group_teams):
+    return df[df['home_team'].isin(group_teams) & df['away_team'].isin(group_teams)]
+
+# Iterate over each group and plot the heatmap
+for group_name, teams in groups.items():
+    group_matches = filter_matches_by_group(upcoming_matches, teams)
+    plot_agreement_heatmap(group_matches, group_name)
