@@ -251,11 +251,95 @@ def plot_agreement_heatmap(df, title):
     
     plt.show()
 
-# Function to filter matches by group
 def filter_matches_by_group(df, group_teams):
     return df[df['home_team'].isin(group_teams) & df['away_team'].isin(group_teams)]
 
-# Iterate over each group and plot the heatmap
+# for group_name, teams in groups.items():
+#     group_matches = filter_matches_by_group(upcoming_matches, teams)
+#     plot_agreement_heatmap(group_matches, group_name)
+
+ground_truthDF = pd.DataFrame({
+    'date': [
+        '2024-06-14', '2024-06-15', '2024-06-15', '2024-06-15',
+        '2024-06-16', '2024-06-16', '2024-06-16', '2024-06-17',
+        '2024-06-17', '2024-06-17', '2024-06-18', '2024-06-18',
+        '2024-06-19', '2024-06-19', '2024-06-19', '2024-06-20',
+        '2024-06-20', '2024-06-20', '2024-06-21', '2024-06-21',
+        '2024-06-21', '2024-06-22', '2024-06-22', '2024-06-22',
+        '2024-06-23', '2024-06-23', '2024-06-24', '2024-06-24',
+        '2024-06-25', '2024-06-25', '2024-06-25', '2024-06-25',
+        '2024-06-26', '2024-06-26', '2024-06-26', '2024-06-26'
+    ],
+    'home_team': [
+        'Germany', 'Hungary', 'Spain', 'Italy', 'Slovenia', 'Serbia', 'Poland', 'Austria',
+        'Romania', 'Belgium', 'Turkey', 'Portugal', 'Germany', 'Scotland', 'Croatia', 'Spain',
+        'Slovenia', 'Denmark', 'Poland', 'Netherlands', 'Slovakia', 'Belgium', 'Georgia', 'Turkey',
+        'Germany', 'Scotland', 'Albania', 'Croatia', 'England', 'Denmark', 'Netherlands', 'France',
+        'Slovakia', 'Ukraine', 'Georgia', 'Czech Republic'
+    ],
+    'away_team': [
+        'Scotland', 'Switzerland', 'Croatia', 'Albania', 'Denmark', 'England', 'Netherlands', 'France',
+        'Ukraine', 'Slovakia', 'Georgia', 'Czech Republic', 'Hungary', 'Switzerland', 'Albania', 'Italy',
+        'Serbia', 'England', 'Austria', 'France', 'Ukraine', 'Romania', 'Czech Republic', 'Portugal',
+        'Switzerland', 'Hungary', 'Spain', 'Italy', 'Slovenia', 'Serbia', 'Austria', 'Poland',
+        'Romania', 'Belgium', 'Portugal', 'Turkey'
+    ],
+    'Actual_Result': [2, 0, 2, 2, 1, 0, 0, 0, 2, 0, 2, 2, 2, 1, 1, 2,
+                1, 1, 0, 1, 0, 2, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1,
+                1, 1, 2, 0]
+})
+
+merged_df = upcoming_matches.merge(ground_truthDF, on=['home_team', 'away_team'])
+
+# Calculate accuracy for each model
+for model in ['RF_Prediction', 'SVM_Prediction', 'NN_Prediction']:
+    merged_df[f'{model}_Correct'] = merged_df[model] == merged_df['Actual_Result']
+
+accuracies = {
+    model: merged_df[f'{model}_Correct'].mean() * 100
+    for model in ['RF_Prediction', 'SVM_Prediction', 'NN_Prediction']
+}
+
+print("Model Accuracies:")
+for model, accuracy in accuracies.items():
+    print(f"{model}: {accuracy:.2f}%")
+
+def plot_comparison_heatmap(df, title):
+    comparison_matrix = df[['RF_Prediction', 'SVM_Prediction', 'NN_Prediction', 'Actual_Result']].T
+    
+    prediction_cmap = ListedColormap(["#b3bfd1", "#a4a2a8", "#df8879"])  # Colors: Away Win, Draw, Home Win
+
+    fig, ax = plt.subplots(figsize=(15, 10))
+    
+    sns.heatmap(comparison_matrix, cmap=prediction_cmap, cbar=False, annot=True, fmt='d', linewidths=.5, annot_kws={"size": 10}, ax=ax)
+    
+    plt.title(f'{title} - Model Predictions vs Actual Results', fontsize=18)
+    plt.xlabel('Matchup', fontsize=14)
+    plt.ylabel('Model/Actual Result', fontsize=14)
+    
+    matchups = ["{} vs. {}".format(row['home_team'], row['away_team']) for _, row in df.iterrows()]
+    ax.set_xticks([i + 0.5 for i in range(len(matchups))])
+    ax.set_xticklabels(matchups, rotation=45, fontsize=10)
+    
+    plt.yticks(fontsize=12, rotation=0)
+    
+    legend_labels = {
+        0: 'Away Win',
+        1: 'Draw',
+        2: 'Home Win'
+    }
+    
+    from matplotlib.lines import Line2D
+    custom_lines = [Line2D([0], [0], color='#b3bfd1', lw=4),
+                    Line2D([0], [0], color='#a4a2a8', lw=4),
+                    Line2D([0], [0], color='#df8879', lw=4)]
+    
+    plt.legend(custom_lines, [legend_labels[key] for key in legend_labels.keys()], title="Predictions",
+               bbox_to_anchor=(-0.2, 1), loc='upper left', borderaxespad=0.)
+    
+    plt.show()
+
+# Iterate over each group and plot the comparison heatmap
 for group_name, teams in groups.items():
-    group_matches = filter_matches_by_group(upcoming_matches, teams)
-    plot_agreement_heatmap(group_matches, group_name)
+    group_matches = filter_matches_by_group(merged_df, teams)
+    plot_comparison_heatmap(group_matches, group_name)
